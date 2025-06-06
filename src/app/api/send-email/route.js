@@ -16,8 +16,32 @@ export async function POST(req) {
   const mailOptions = {
     from: process.env.GMAIL_USER,
     to: email, // Recipient's email address (from the form)
-    subject: "Form Submission Successful",
-    text: `Hi ${name},\n\nThank you for submitting your form. We'll get back to you soon.`,
+    subject:
+      "🎉 Welcome to ZimSeek – Your 3-Month Free Seller Access Has Begun!",
+    text: `Dear ${name},
+
+Welcome to ZimSeek – Zimbabwe’s first AI-powered marketplace connecting sellers like you to buyers seeking the best deals in town via WhatsApp, Web, and Voice! 🚀
+
+We’re excited to have you on board and are pleased to offer you an exclusive 3-month free trial to showcase your products and grow your customer base.
+
+🔍 Why ZimSeek?
+✅ Reach More Customers: We use AI to match you with active buyers looking for exactly what you sell.
+✅ Smart Discovery: Your listings will be accessible via WhatsApp, web, and more – giving you maximum visibility.
+✅ Simplified Communication: Buyers can contact you directly via WhatsApp with one click.
+✅ Affordable Pricing: After your free trial, continue growing for only $5 per product listing/month.
+
+🛒 What’s Next?
+We'll review and activate your listing shortly. Once live, potential buyers will start seeing your product when they search on ZimSeek.
+
+Feel free to reply to this email if you have any questions or updates to your listing.
+
+Welcome to the future of local trade in Zimbabwe.
+
+Warm regards,  
+The ZimSeek Team  
+📱 WhatsApp: +263 XXX XXX XXX  
+🌐 www.zimseek.co.zw  
+✉️ support@zimseek.co.zw`,
   };
 
   try {

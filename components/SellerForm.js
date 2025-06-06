@@ -14,6 +14,7 @@ const SellerForm = () => {
     suburb: "",
     products: [{ name: "", category: "", price: "" }],
   });
+  const [loading, setLoading] = useState(false);
 
   const router = useRouter(); // Initialize useRouter for navigation
 
@@ -44,59 +45,103 @@ const SellerForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Step 1: Create a new seller node in Firebase
-    const sellerRef = push(ref(db, "sellers"));
-    const sellerId = sellerRef.key;
-
-    await set(sellerRef, {
-      sellerName: formData.sellerName, // Saving seller's name
-      storeName: formData.storeName, // Saving store name
-      email: formData.email,
-      phone: formData.phone,
-      location: {
-        city: formData.city,
-        suburb: formData.suburb,
-      },
-    });
-
-    // Step 2: Save each product in Firebase
-    for (const product of formData.products) {
-      const productRef = push(ref(db, "products"));
-      await set(productRef, {
-        name: product.name,
-        category: product.category,
-        price: parseFloat(product.price),
-        city: formData.city,
-        sellerId: sellerId,
-      });
+    if (
+      !formData.sellerName.trim() ||
+      !formData.storeName.trim() ||
+      !formData.email.trim() ||
+      !formData.phone.trim() ||
+      !formData.city.trim() ||
+      !formData.suburb.trim()
+    ) {
+      alert("Please fill in all required seller details.");
+      return;
     }
 
-    // Step 3: Trigger email sending via API route
-    await fetch("/api/send-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: formData.sellerName, // Seller's name
-        email: formData.email, // Seller's email
-      }),
-    });
+    for (const [i, product] of formData.products.entries()) {
+      if (
+        !product.name.trim() ||
+        !product.category.trim() ||
+        product.price === ""
+      ) {
+        alert(`Please fill in all fields for product ${i + 1}`);
+        return;
+      }
 
-    // Navigate to the success page
-    router.push("/success");
-    setFormData({
-      sellerName: "", // Reset seller's name
-      storeName: "", // Reset store's name
-      email: "",
-      phone: "",
-      city: "",
-      suburb: "",
-      products: [{ name: "", category: "", price: "" }],
-    });
+      const priceValue = parseFloat(product.price);
+      if (isNaN(priceValue) || priceValue < 0) {
+        alert(`Product ${i + 1} has an invalid price.`);
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      // Create seller
+      const sellerRef = push(ref(db, "sellers"));
+      const sellerId = sellerRef.key;
+
+      await set(sellerRef, {
+        sellerName: formData.sellerName,
+        storeName: formData.storeName,
+        email: formData.email,
+        phone: formData.phone,
+        location: {
+          city: formData.city,
+          suburb: formData.suburb,
+        },
+      });
+
+      // Create products
+      for (const product of formData.products) {
+        const productRef = push(ref(db, "products"));
+        await set(productRef, {
+          name: product.name,
+          category: product.category,
+          price: parseFloat(product.price),
+          city: formData.city,
+          sellerId: sellerId,
+        });
+      }
+
+      // Send email
+      await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.sellerName,
+          email: formData.email,
+        }),
+      });
+
+      // Reset form before redirecting
+      setFormData({
+        sellerName: "",
+        storeName: "",
+        email: "",
+        phone: "",
+        city: "",
+        suburb: "",
+        products: [{ name: "", category: "", price: "" }],
+      });
+
+      router.push("/success");
+    } catch (error) {
+      console.error("Error during form submission:", error);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
+  return loading ? (
+    <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+      <div className="text-center">
+        <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4 mx-auto animate-spin border-t-blue-500"></div>
+        <p className="text-lg">Submitting your information...</p>
+      </div>
+    </div>
+  ) : (
     <div className="max-w-3xl mx-auto mt-10 text-white p-8 bg-gray-800 shadow-xl rounded-lg border border-gray-700">
       <h2 className="text-3xl font-bold mb-6">
         🛍️ ZimSeek Seller Registration
@@ -156,6 +201,7 @@ const SellerForm = () => {
             placeholder="Suburb"
             value={formData.suburb}
             onChange={handleChange}
+            required
             className="p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
@@ -176,6 +222,7 @@ const SellerForm = () => {
                 placeholder="Product Name"
                 value={product.name}
                 onChange={(e) => handleChange(e, idx)}
+                required
                 className="p-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none"
               />
               <input
@@ -184,6 +231,7 @@ const SellerForm = () => {
                 placeholder="Category"
                 value={product.category}
                 onChange={(e) => handleChange(e, idx)}
+                required
                 className="p-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none"
               />
               <input
@@ -192,6 +240,7 @@ const SellerForm = () => {
                 placeholder="Price"
                 value={product.price}
                 onChange={(e) => handleChange(e, idx)}
+                required
                 className="p-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none"
               />
               {formData.products.length > 1 && (
