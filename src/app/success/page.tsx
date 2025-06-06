@@ -1,4 +1,4 @@
-import SuccessPage from "../../../components/SucessPage";
+import SuccessPage from "../../../components/SucessPage.js";
 function success() {
   return <SuccessPage />;
 }
