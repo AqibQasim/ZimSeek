@@ -14,17 +14,20 @@ export async function POST(req) {
   // });
 
   const transporter = nodemailer.createTransport({
-    host: "smtpout.secureserver.net",
-    port: 587, // or use 587 for TLS
-    secure: false, // true for port 465, false for 587
+    host: "smtp.office365.com",
+    port: 587,
+    secure: false, // use TLS
     auth: {
-      user: process.env.GODADDY_USER, // e.g., support@zimseek.com
-      pass: process.env.GODADDY_PASS, // your GoDaddy email password
+      user: process.env.GODADDY_USER,
+      pass: process.env.GODADDY_PASS, // use the actual email account password
+    },
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 
   const mailOptions = {
-    from: process.env.GODADDY_USER,
+    from: GODADDY_USER,
     to: email, // Recipient's email address (from the form)
     subject:
       "🎉 Welcome to ZimSeek – Your 3-Month Free Seller Access Has Begun!",
