@@ -1,26 +1,25 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { db } from "../lib/firebase"; // Firebase config
+import { db } from "../lib/firebase";
 import { ref, push, set } from "firebase/database";
 
 const SellerForm = () => {
   const [formData, setFormData] = useState({
-    sellerName: "", // Seller's name
-    storeName: "", // Store name
+    sellerName: "",
+    storeName: "",
     email: "",
     phone: "",
     city: "",
     suburb: "",
-    products: [{ name: "", category: "", price: "" }],
+    businessType: "",
+    products: [{ name: "", category: "", price: "", unit: "" }],
   });
   const [loading, setLoading] = useState(false);
-
-  const router = useRouter(); // Initialize useRouter for navigation
+  const router = useRouter();
 
   const handleChange = (e, index = null) => {
     const { name, value } = e.target;
-
     if (name.startsWith("product") && index !== null) {
       const updatedProducts = [...formData.products];
       updatedProducts[index][name.split(".")[1]] = value;
@@ -33,7 +32,10 @@ const SellerForm = () => {
   const addProduct = () => {
     setFormData({
       ...formData,
-      products: [...formData.products, { name: "", category: "", price: "" }],
+      products: [
+        ...formData.products,
+        { name: "", category: "", price: "", unit: "" },
+      ],
     });
   };
 
@@ -51,7 +53,8 @@ const SellerForm = () => {
       !formData.email.trim() ||
       !formData.phone.trim() ||
       !formData.city.trim() ||
-      !formData.suburb.trim()
+      !formData.suburb.trim() ||
+      !formData.businessType.trim()
     ) {
       alert("Please fill in all required seller details.");
       return;
@@ -61,6 +64,7 @@ const SellerForm = () => {
       if (
         !product.name.trim() ||
         !product.category.trim() ||
+        !product.unit.trim() ||
         product.price === ""
       ) {
         alert(`Please fill in all fields for product ${i + 1}`);
@@ -77,7 +81,6 @@ const SellerForm = () => {
     setLoading(true);
 
     try {
-      // Create seller
       const sellerRef = push(ref(db, "sellers"));
       const sellerId = sellerRef.key;
 
@@ -85,26 +88,26 @@ const SellerForm = () => {
         sellerName: formData.sellerName,
         storeName: formData.storeName,
         email: formData.email,
-        phone: formData.phone,
+        phone: "+263" + formData.phone,
         location: {
           city: formData.city,
           suburb: formData.suburb,
         },
+        businessType: formData.businessType,
       });
 
-      // Create products
       for (const product of formData.products) {
         const productRef = push(ref(db, "products"));
         await set(productRef, {
           name: product.name,
           category: product.category,
           price: parseFloat(product.price),
+          unit: product.unit,
           city: formData.city,
           sellerId: sellerId,
         });
       }
 
-      // Send email
       await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,25 +117,89 @@ const SellerForm = () => {
         }),
       });
 
-      // Reset form before redirecting
-      setFormData({
-        sellerName: "",
-        storeName: "",
-        email: "",
-        phone: "",
-        city: "",
-        suburb: "",
-        products: [{ name: "", category: "", price: "" }],
-      });
+      // setFormData({
+      //   sellerName: "",
+      //   storeName: "",
+      //   email: "",
+      //   phone: "",
+      //   city: "",
+      //   suburb: "",
+      //   businessType: "",
+      //   products: [{ name: "", category: "", price: "", unit: "" }],
+      // });
 
       router.push("/success");
     } catch (error) {
       console.error("Error during form submission:", error);
       alert("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
+
+  const cities = [
+    "Bindura",
+    "Bulawayo",
+    "Chegutu",
+    "Chinhoyi",
+    "Chipinge",
+    "Chiredzi",
+    "Chitungwiza",
+    "Gweru",
+    "Gwanda",
+    "Harare",
+    "Hwange",
+    "Kadoma",
+    "Kariba",
+    "Karoi",
+    "Kwekwe",
+    "Marondera",
+    "Masvingo",
+    "Mutare",
+    "Norton",
+    "Plumtree",
+    "Victoria Falls",
+    "Zvishavane",
+    "Other",
+  ];
+
+  const categories = [
+    "Agricultural Inputs",
+    "Beans",
+    "Beverages",
+    "Building Supplies",
+    "Cars and Vehicles",
+    "Dairy",
+    "Dating",
+    "Eggs",
+    "Electronics",
+    "Fish",
+    "Fresh Produce",
+    "Fruits",
+    "Grains",
+    "Groceries",
+    "Groundnuts/Peanuts",
+    "Herbs",
+    "Jobs",
+    "Meat and Poultry",
+    "Pharmacy/Medicine",
+    "School Supplies",
+    "Services",
+    "Other",
+  ];
+
+  const businessTypes = [
+    "Cooperative",
+    "Farmer",
+    "Home-Based Seller",
+    "Local Market Stall",
+    "Other",
+    "Specialty Store",
+    "Supermarket",
+    "Street Based Seller",
+    "Wholesaler",
+    "Other",
+  ];
+
+  const units = ["per kg", "per piece", "per bundle", "per litre"];
 
   return loading ? (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
@@ -148,25 +215,24 @@ const SellerForm = () => {
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Seller Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="text"
-            name="sellerName" // Seller's name
-            placeholder="Seller Name" // Placeholder for seller's name
+            name="sellerName"
+            placeholder="Seller Name"
             value={formData.sellerName}
             onChange={handleChange}
             required
-            className="p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="p-3 bg-gray-700 border border-gray-600 rounded text-white"
           />
           <input
             type="text"
-            name="storeName" // Store name
-            placeholder="Store Name" // Placeholder for store's name
+            name="storeName"
+            placeholder="Store Name"
             value={formData.storeName}
             onChange={handleChange}
             required
-            className="p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="p-3 bg-gray-700 border border-gray-600 rounded text-white"
           />
           <input
             type="email"
@@ -175,38 +241,61 @@ const SellerForm = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            className="p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="p-3 bg-gray-700 border border-gray-600 rounded text-white"
           />
-          <input
-            type="text"
-            name="phone"
-            placeholder="Phone Number"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-            className="p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="text"
+          <div className="flex items-center">
+            <span className="px-3 bg-gray-600 text-white rounded-l p-3">
+              +263
+            </span>
+            <input
+              type="text"
+              name="phone"
+              placeholder="Phone Number (WhatsApp)"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              className="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-r text-white"
+            />
+          </div>
+          <select
             name="city"
-            placeholder="City"
             value={formData.city}
             onChange={handleChange}
             required
-            className="p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
+            className="p-3 bg-gray-700 border border-gray-600 rounded text-white"
+          >
+            <option value="">Select City / Town</option>
+            {cities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             name="suburb"
-            placeholder="Suburb"
+            placeholder="Suburb / Area"
             value={formData.suburb}
             onChange={handleChange}
             required
-            className="p-3 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="p-3 bg-gray-700 border border-gray-600 rounded text-white"
           />
+          <select
+            name="businessType"
+            value={formData.businessType}
+            onChange={handleChange}
+            required
+            className="p-3 bg-gray-700 border border-gray-600 rounded text-white"
+          >
+            <option value="">Select Business Type</option>
+            {businessTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Product Fields */}
         <div className="space-y-4">
           <h3 className="text-xl font-semibold text-gray-100 mb-2">
             🧾 Products
@@ -214,7 +303,7 @@ const SellerForm = () => {
           {formData.products.map((product, idx) => (
             <div
               key={idx}
-              className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center bg-gray-700 p-3 rounded"
+              className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center bg-gray-700 p-3 rounded"
             >
               <input
                 type="text"
@@ -223,17 +312,22 @@ const SellerForm = () => {
                 value={product.name}
                 onChange={(e) => handleChange(e, idx)}
                 required
-                className="p-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none"
+                className="p-2 bg-gray-800 border border-gray-600 rounded text-white"
               />
-              <input
-                type="text"
+              <select
                 name="product.category"
-                placeholder="Category"
                 value={product.category}
                 onChange={(e) => handleChange(e, idx)}
                 required
-                className="p-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none"
-              />
+                className="p-2 bg-gray-800 border border-gray-600 rounded text-white"
+              >
+                <option value="">Select Category</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
               <input
                 type="number"
                 name="product.price"
@@ -241,13 +335,27 @@ const SellerForm = () => {
                 value={product.price}
                 onChange={(e) => handleChange(e, idx)}
                 required
-                className="p-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none"
+                className="p-2 bg-gray-800 border border-gray-600 rounded text-white"
               />
+              <select
+                name="product.unit"
+                value={product.unit}
+                onChange={(e) => handleChange(e, idx)}
+                required
+                className="p-2 bg-gray-800 border border-gray-600 rounded text-white"
+              >
+                <option value="">Select Unit</option>
+                {units.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
               {formData.products.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeProduct(idx)}
-                  className="text-red-500 hover:text-red-700 cursor-pointer"
+                  className="text-red-500 hover:text-red-700"
                 >
                   Remove
                 </button>
@@ -257,13 +365,12 @@ const SellerForm = () => {
           <button
             type="button"
             onClick={addProduct}
-            className="text-blue-400 hover:underline mt-2 cursor-pointer"
+            className="text-blue-400 hover:underline mt-2"
           >
             + Add Another Product
           </button>
         </div>
 
-        {/* Submit */}
         <div className="text-right">
           <button
             type="submit"

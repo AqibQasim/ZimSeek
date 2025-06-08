@@ -27,7 +27,7 @@ export async function POST(req) {
   });
 
   const mailOptions = {
-    from: GODADDY_USER,
+    from: process.env.GODADDY_USER,
     to: email, // Recipient's email address (from the form)
     subject:
       "🎉 Welcome to ZimSeek – Your 3-Month Free Seller Access Has Begun!",
